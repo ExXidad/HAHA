@@ -1,0 +1,167 @@
+#!/usr/bin/env wolframscript
+
+singleModule[img_, fov_, a_, b_, c_, boxPt_, hookPt_, outPath_, onlyTop_:False] := 
+ Module[{dim, rows, cols, R, c1, P, rowColToPt, genBox, genHook, 
+   gen7PointBoxes, gen6PointBoxes, gen4PointBoxes, genBoxes, project, 
+   r0, metrics, optimize, angle, sol, rr, \[Alpha]\[Alpha], hh, 
+   finalImg},
+  Print["Kernel count: " <> ToString@Length@Kernels[]];
+  
+  dim = ImageDimensions[img];
+  rows = dim[[2]];
+  cols = dim[[1]];
+  R = 1. cols/rows;
+  c1 = 1;
+  P = ( {
+     {Cot[fov]/R, 0,  0, 0},
+     {0, Cot[fov], 0, 0},
+     {0, 0, -c1, -1},
+     {0, 0, -1, 0}
+    } );
+  rowColToPt[row_, col_] := 
+   2 {(col - cols/2.)/cols, (-row + rows/2.)/rows};
+  
+  
+  
+  
+  genBox[r0_, angles_] := 
+   Flatten[Table[r0 + EulerMatrix[angles] . (0.5 ( {
+           {(-1)^i a},
+           {(-1)^j b},
+           {(-1)^k c}
+          } )), {i, 0, 1}, {j, 0, 1}, {k, 0, 1}], 2];
+  
+  genHook[r0_, angles_, h_] := r0 + EulerMatrix[angles] . ( {
+       {0},
+       {0},
+       {0.5 c + h}
+      } );
+  
+  
+  
+  gen7PointBoxes[r0_, angles_] := 
+   Table[Delete[genBox[r0, angles], i], {i, If[onlyTop,{2,4},{1,2,3,4}]}];
+  gen6PointBoxes[r0_, 
+    angles_] := If[onlyTop,
+    {Delete[#, {{2}, {4}}], Delete[#, {{2}, {6}}]},
+    {Delete[#, {{2}, {4}}], Delete[#, {{2}, {6}}], Delete[#, {{1}, {3}}], Delete[#, {{1}, {5}}]}
+    ]&@genBox[r0, angles];
+  gen4PointBoxes[r0_, angles_] := {Delete[#, {{1}, {2}, {3}, {4}}], Delete[#, {{1}, {2}, {5}, {6}}]} &@
+    genBox[r0, angles];
+  genBoxes[r0_, angles_, n_] := 
+   Piecewise[{{gen4PointBoxes, n == 4}, {gen6PointBoxes, 
+       n == 6}, {gen7PointBoxes, n == 7}}, Null] @@ {r0, angles};
+  
+  
+  
+  
+  project[pt_] := Module[{v3, v4},
+    v4 = P . (pt~Join~{{1}});
+    v3 = v4[[;; 3]]/v4[[4, 1]];
+    v3[[;; 2 ]]
+    ];
+  
+  
+  
+  
+  r0[cameraPts_] := 
+   Module[{mean, cameraSize, yCameraSize, xCameraSize, sortedByX, z},
+    cameraSize = (Max[#] - Min[#]) & /@ {cameraPts[[;; , 1]], 
+       cameraPts[[;; , 2]]};
+    mean = Mean[cameraPts];
+    z = Mean@{(Cot[fov] Max[a, b])/(R cameraSize[[1]]), (Cot[fov] c)/
+       cameraSize[[2]]};
+    {R Tan[fov] z mean[[1]], Tan[fov] z mean[[2]], z}
+    ];
+  
+  
+  
+  
+  metrics[r0_, angles_, h_, refBoxProj_, refHookProj_, n_, i_] := 
+   Module[{box, boxProj, hook, hookProj},
+    If[n != Length[refBoxProj] || 
+      i > Length@genBoxes[r0, angles, n][[1]], Return[Null]];
+    box = genBoxes[r0, angles, n][[i]];
+    boxProj = project /@ box;
+    hook = genHook[r0, angles, h];
+    hookProj = project@hook;
+    Norm[#]^2 & /@ ((boxProj - refBoxProj)~
+        Join~(hookProj - refHookProj)) // Mean
+    ];
+  
+  optimize[boxProj_, hookProj_, 
+    r0_ : {0, 0, 0}, \[Alpha]0_ : {0, 0, 0}, h0_ : c] := 
+   Module[{nVertices, nBoxes, solutions},
+    nVertices = Length@boxProj;
+    nBoxes = Length@genBoxes[r0, \[Alpha]0, nVertices];
+    solutions = Flatten[
+      ParallelTable[
+       Quiet@
+        FindMinimum[{metrics[{rx, ry, 
+            rz}, {\[Alpha]x, \[Alpha]y, \[Alpha]z}, hg, boxProjLoc, 
+           hookProj, nVertices, i], rz > 0, 
+          hg > 0, -Pi <= \[Alpha]x <= Pi, -Pi <= \[Alpha]y <= 
+           Pi, -Pi <= \[Alpha]z <= Pi}, 
+         Transpose@{{rx, ry, rz, \[Alpha]x, \[Alpha]y, \[Alpha]z, hg},
+            r0~Join~\[Alpha]0~Join~{h0}}, MaxIterations -> 50, 
+         AccuracyGoal -> 5],
+       {boxProjLoc, Permutations[boxProj]}, {i, 1, nBoxes}]
+      , 1];
+    First@MinimalBy[solutions, First]
+    ];
+  sol = optimize[boxPt, hookPt, r0[boxPt]];
+  (* sol={0,{rx->1, ry->1, rz->1, \[Alpha]x->1, \[Alpha]y->1, \[Alpha]z->1, hg->1}}; *)
+  
+  
+  rr = {rx, ry, rz} /. sol[[2]];
+  \[Alpha]\[Alpha] = {\[Alpha]x, \[Alpha]y, \[Alpha]z} /. sol[[2]];
+  \[Alpha]\[Alpha] /= Degree;
+  hh = hg /. sol[[2]];
+  angle = 2 ArcTan[Sqrt[a^2 + b^2]/(2 hh)]/Degree;
+  
+  finalImg = Rasterize[
+    Show[{
+     img,
+     Graphics[{
+       White, EdgeForm[{Magenta, Thick}], 
+       Rectangle[{5, 5}, {200, 250}],
+       Black,
+       Text[
+        Style[
+         "Opposing slings angle: \n" <> 
+          ToString@NumberForm[angle, 3] <> ", \[Degree]", 
+         FontSize -> 14], {102.5, 200}],
+       Text[
+        Style[
+         "Box center relative position: \n" <> 
+          ToString@NumberForm[rr, 3] <> ", m", 
+         FontSize -> 14], {102.5, 150}],
+       Text[
+        Style[
+         "Box Euler angles: \n" <> 
+          ToString@NumberForm[\[Alpha]\[Alpha], 3] <> 
+          ", \[Degree]", FontSize -> 14], {102.5, 100}],
+       Text[
+        Style[
+         "Hook elevation above top: \n" <> 
+          ToString@NumberForm[hh, 3] <> ", m", 
+         FontSize -> 14], {102.5, 50}],
+       }]
+  }],
+  ImageSize -> dim, ImageResolution -> dim[[2]]/10
+  ];
+  
+  Export[outPath, finalImg];
+  ]
+
+imgPath=ToString@$ScriptCommandLine[[2]];
+outPath=ToString@$ScriptCommandLine[[-2]];
+
+{fov,a,b,c,boxPt,hookPt,onlyTop}=ToExpression/@$ScriptCommandLine[[3;;-2]];
+
+img = Import[imgPath,"Image"];
+(* Print@"noifnwoeknfowkenfowkenfowkenfokn" *)
+(* Print@{imgPath,fov,a,b,c,boxPt,hookPt,outPath} *)
+(* Print@Mean@boxPt *)
+
+singleModule[img,fov,a,b,c,boxPt,hookPt,outPath,onlyTop]
