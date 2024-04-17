@@ -1,10 +1,10 @@
 #!/usr/bin/env wolframscript
 
-singleModule[img_, fov_, a_, b_, c_, boxPt_, hookPt_, outPath_, onlyTop_:False] := 
+singleModule[img_, fov_, a_, b_, c_, boxPtIn_, hookPtIn_, outPath_, onlyTop_:False] := 
  Module[{dim, rows, cols, R, c1, P, rowColToPt, genBox, genHook, 
    gen7PointBoxes, gen6PointBoxes, gen4PointBoxes, genBoxes, project, 
    r0, metrics, optimize, angle, sol, rr, \[Alpha]\[Alpha], hh, 
-   finalImg},
+   finalImg,boxPt, hookPt},
   Print["Kernel count: " <> ToString@Length@Kernels[]];
   
   dim = ImageDimensions[img];
@@ -20,6 +20,9 @@ singleModule[img_, fov_, a_, b_, c_, boxPt_, hookPt_, outPath_, onlyTop_:False] 
     } );
   rowColToPt[row_, col_] := 
    2 {(col - cols/2.)/cols, (-row + rows/2.)/rows};
+
+   boxPt=rowColToPt@@#&/@boxPtIn;
+   hookPt=rowColToPt@@hookPtIn;
   
   
   

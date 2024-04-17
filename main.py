@@ -38,7 +38,7 @@ closest_box_xyxy = boxes[closest_box_idx]
 print("Cropping image...")
 
 img = Image.open(source_img_path)
-offset = 30
+offset = 32
 crop_coords = (lambda x: [x[0] - offset, 0, x[2] + offset, x[3] + offset])(closest_box_xyxy)
 cropped_img = img.crop(crop_coords)
 crop_save_path = "intermediate_crop/tmp.png"
