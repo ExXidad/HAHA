@@ -58,11 +58,19 @@ singleModule[img_, fov_, a_, b_, c_, boxPtIn_, hookPtIn_, outPath_, onlyTop_:Fal
   
   
   
-  project[pt_] := Module[{v3, v4},
+  (* project[pt_] := Module[{v3, v4},
     v4 = P . (pt~Join~{{1}});
     v3 = v4[[;; 3]]/v4[[4, 1]];
     v3[[;; 2 ]]
-    ];
+    ]; *)
+  project[pt_] := Module[{th, phi, v3, v4, ppt, r, f},
+    v4 = P . (pt~Join~{{1}});
+    v3 = v4[[;; 3]]/v4[[4, 1]];
+    ppt = v3[[;; 2 ]];
+    r = Norm@ppt;
+    f = 1.73;
+    ppt 2 Sin[ArcTan[r/f]/2] f/r
+  ]
   
   
   

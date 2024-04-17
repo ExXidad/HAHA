@@ -16,8 +16,7 @@
 ## Подготовка к запуску
 
 1. Установить Wolfram Script (Прим.: потребуется регистрация на Wolfram User Portal)
-    1. По гайду https://support.wolfram.com/46072 установить Wolfram Kernel
-        2. Установочный файл здесь https://www.wolfram.com/engine/
+    1. По гайду https://support.wolfram.com/46072 установить Wolfram Kernel (Установочный файл здесь https://www.wolfram.com/engine/)
     2. Установить wolframscript https://www.wolfram.com/wolframscript/
     3. Проверить, что установка прошла корректно, введя в консоль комманду
    ```wolfram

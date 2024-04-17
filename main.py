@@ -78,7 +78,7 @@ for box_pt_cr in box_pts_cr:
     box_pts_rc.append(box_pt_cr[::-1])
 hook_pt_rc = hook_pt_cr[::-1]
 
-fov = 0.523599
+fov = 0.2
 a, b, c = [2.5908, 3.048, 2.4384]
 
 
