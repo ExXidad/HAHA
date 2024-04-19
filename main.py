@@ -3,6 +3,7 @@ import os
 from PIL import Image
 import numpy as np
 from ultralytics import YOLO
+import cv2
 
 source_img_path = sys.argv[1]
 yolo_device = "cpu"
@@ -14,7 +15,7 @@ print("Starting primary container detection...")
 detect_model = YOLO("detect_model.pt")
 detect_results = \
     detect_model.predict(source=source_img_path, device=yolo_device, conf=0.4, iou=0.5, imgsz=1280, save=True,
-                         project="./", name="intermediate_detect", exist_ok=True)[0]  # TODO: change imgsz
+                         project="./", name="intermediate_detect", exist_ok=True)[0]
 print()
 
 if len(detect_results.boxes) == 0:

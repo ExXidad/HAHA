@@ -4,7 +4,7 @@ singleModule[img_, fov_, a_, b_, c_, boxPtIn_, hookPtIn_, outPath_, onlyTop_:Fal
  Module[{dim, rows, cols, R, c1, P, rowColToPt, genBox, genHook, 
    gen7PointBoxes, gen6PointBoxes, gen4PointBoxes, genBoxes, project, 
    r0, metrics, optimize, angle, sol, rr, \[Alpha]\[Alpha], hh, 
-   finalImg,boxPt, hookPt},
+   finalImg,boxPt, hookPt,preImg,boxImg},
   Print["Kernel count: " <> ToString@Length@Kernels[]];
   
   dim = ImageDimensions[img];
@@ -58,19 +58,15 @@ singleModule[img_, fov_, a_, b_, c_, boxPtIn_, hookPtIn_, outPath_, onlyTop_:Fal
   
   
   
-  project[pt_] := Module[{v3, v4},
-    v4 = P . (pt~Join~{{1}});
-    v3 = v4[[;; 3]]/v4[[4, 1]];
-    v3[[;; 2 ]]
-    ];
-  (* project[pt_] := Module[{th, phi, v3, v4, ppt, r, f},
+  
+  project[pt_] := Module[{v3, v4, ppt, r, f=0.75},
     v4 = P . (pt~Join~{{1}});
     v3 = v4[[;; 3]]/v4[[4, 1]];
     ppt = v3[[;; 2 ]];
     r = Norm@ppt;
-    f = 1.73;
-    ppt 2 Sin[ArcTan[r/f]/2] f/r
-  ] *)
+    ppt
+    (* ppt 2 Sin[ArcTan[r/f]/2] f/r *)
+  ];
   
   
   
@@ -130,7 +126,7 @@ singleModule[img_, fov_, a_, b_, c_, boxPtIn_, hookPtIn_, outPath_, onlyTop_:Fal
   hh = hg /. sol[[2]];
   angle = 2 ArcTan[Sqrt[a^2 + b^2]/(2 hh)]/Degree;
   
-  finalImg = Rasterize[
+  preImg = Rasterize[
     Show[{
      img,
      Graphics[{
@@ -161,6 +157,33 @@ singleModule[img_, fov_, a_, b_, c_, boxPtIn_, hookPtIn_, outPath_, onlyTop_:Fal
   }],
   ImageSize -> dim, ImageResolution -> dim[[2]]/10
   ];
+
+  boxImg = With[{hhh = hh, aaa = angle}, Rasterize[
+   Graphics3D[{
+     {FaceForm[Green], EdgeForm[Thick], 
+     Cuboid[-0.5 {a, b, c}, 0.5 {a, b, c}], Thick, PointSize[0.05]}, 
+     Point[{{0, 0, c/2 + hhh}}],(*Table[Line[{{{0,0,c/2+h},{x,y,c/
+     2}}}],{x,{a/2,-a/2}},{y,{-b/2,b/
+     2}}],*)
+     {Red, Opacity[0.2], 
+      Triangle[{{a/2, b/2, c/2}, {0, 0, c/2 + hhh}, {-a/2, -b/2, 
+         c/2}}]},
+     {Arrowheads[{-0.1, 0.1}], 
+      Arrow[{{-a/2, - b/2, c/2}, {-a/2, - b/2, c/2 + hhh}}]},
+     {Style[
+       Text[
+        ToString@NumberForm[hhh, 2] <> " m", {-a/2 - 0.3 a, -b/2, 
+         c/2 + hhh/2}], FontSize -> 14]},
+     {Style[
+       Text[
+        ToString@NumberForm[1. aaa, 2] <> "\[Degree]", {0, 0, 
+         c/2 + hhh - 0.5 hhh}], FontSize -> 14]},
+     {If[aaa < 90, Green, Red], Sphere[{a/2, 0, c/2 + hhh + 0.2 hhh},0.5 Mean@{a,b,c}]}
+     }, Lighting -> "ThreePoint", Boxed -> False]]
+  ];
+
+  finalImg=ImageAssemble[{{boxImg,preImg}}, "Fit"];
+
   
   Export[outPath, finalImg];
   ]
