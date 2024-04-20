@@ -1,0 +1,33 @@
+#!/usr/bin/env wolframscript
+
+vidPath=ToString@$ScriptCommandLine[[2]];
+
+vid = Import[vidPath,"Video"];
+
+DeleteDirectory["video_frames",DeleteContents->True];
+CreateDirectory["video_frames"];
+
+DeleteDirectory["processed_video_frames",DeleteContents->True];
+CreateDirectory["processed_video_frames"];
+
+frames = VideoFrameList[vid, All];
+MapThread[Export["video_frames/"<>ToString[#2]<>".jpg",#1]&,{frames,Range@Length@frames}];
+
+processedFrames = {};
+
+Do[
+  With[{i=ii},
+    command = "python main.py "<> "video_frames/"<> ToString[i] <>".jpg " <>"processed_video_frames/"<> ToString[i] <>".jpg";
+    Print@command;
+    Run@command;
+    AppendTo[processedFrames, Import["processed_video_frames/"<>ToString[i]<>".jpg","Image"]];
+  ]
+  ,{ii,1,Length@frames}
+]; 
+
+Export["result.mp4",processedFrames];
+
+DeleteDirectory["video_frames",DeleteContents->True];
+DeleteDirectory["processed_video_frames",DeleteContents->True];
+
+Print["Done. Check result.mp4"];

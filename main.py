@@ -3,10 +3,12 @@ import os
 from PIL import Image
 import numpy as np
 from ultralytics import YOLO
-import cv2
 
 source_img_path = sys.argv[1]
 yolo_device = "cpu"
+out_file_name = "result.jpg" if sys.argv[2] is None else sys.argv[2]
+
+print(out_file_name)
 
 ### Detect
 
@@ -95,8 +97,8 @@ for box_pt_rc in box_pts_rc:
 script_box_str = script_box_str[:len(script_box_str)-2]
 script_box_str += "}\""
 
-wolfram_command = f"./script {source_img_path} {fov} {a} {b} {c} {script_box_str} {script_hook_str} result.jpg True"
+wolfram_command = f"./script {source_img_path} {fov} {a} {b} {c} {script_box_str} {script_hook_str} {out_file_name} True"
 
 os.system(wolfram_command)
 
-print("Done. Check result.jpg")
+print(f"Done. Check {out_file_name}")
