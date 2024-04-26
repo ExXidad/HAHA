@@ -6,7 +6,11 @@ from ultralytics import YOLO
 
 source_img_path = sys.argv[1]
 yolo_device = "cpu"
-out_file_name = "result.jpg" if sys.argv[2] is None else sys.argv[2]
+out_file_name = "result.jpg"
+try:
+    out_file_name = sys.argv[2]
+except IndexError:
+    ...
 
 print(out_file_name)
 
@@ -54,7 +58,7 @@ cropped_img.save(crop_save_path)
 print("Starting keypoint detection...")
 
 pose_model = YOLO("pose_model.pt")
-pose_results = pose_model.predict(source=crop_save_path, device=yolo_device, conf=0.3, iou=0., imgsz=256, save=True,
+pose_results = pose_model.predict(source=crop_save_path, device=yolo_device, conf=0.3, iou=0., imgsz=512, save=True,
                                   project="./", name="intermediate_pose", exist_ok=True, show_labels=False,
                                   show_boxes=False)[0]
 print()
@@ -81,8 +85,9 @@ for box_pt_cr in box_pts_cr:
     box_pts_rc.append(box_pt_cr[::-1])
 hook_pt_rc = hook_pt_cr[::-1]
 
-fov = 0.2
+fov = 1.23
 a, b, c = [2.5908, 3.048, 2.4384]
+# a, b, c = [0.065, 0.16, 0.065]
 
 
 def arr_to_str(arr):
@@ -94,7 +99,7 @@ script_hook_str = "\"" + arr_to_str(hook_pt_rc) + "\""
 script_box_str = "\"{"
 for box_pt_rc in box_pts_rc:
     script_box_str += arr_to_str(box_pt_rc) + ", "
-script_box_str = script_box_str[:len(script_box_str)-2]
+script_box_str = script_box_str[:len(script_box_str) - 2]
 script_box_str += "}\""
 
 wolfram_command = f"./script {source_img_path} {fov} {a} {b} {c} {script_box_str} {script_hook_str} {out_file_name} True"
